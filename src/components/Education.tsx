@@ -10,6 +10,10 @@ import {
   ArrowRight,
   ZoomIn,
   X,
+  Play,
+  Video,
+  Eye,
+  Film,
 } from 'lucide-react';
 import { portfolio } from '../data/portfolio';
 import { TranslationDictionary } from '../data/translations';
@@ -23,10 +27,28 @@ export const Education: React.FC<EducationProps> = ({ t }) => {
   const featuredCourse = education.find((item) => item.isCourse);
   const formalEducation = education.filter((item) => !item.isCourse);
 
+  const videoDriveUrl =
+    featuredCourse?.videoUrl ||
+    featuredCourse?.link ||
+    'https://drive.google.com/file/d/1wlwo47CqCz9fjpKmEmySFXicbuXnQRZu/view?usp=drivesdk';
+
+  // Extract Google Drive ID to generate standard embed preview URL
+  const extractDriveEmbedUrl = (url: string) => {
+    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return `https://drive.google.com/file/d/${match[1]}/preview`;
+    }
+    return 'https://drive.google.com/file/d/1wlwo47CqCz9fjpKmEmySFXicbuXnQRZu/preview';
+  };
+
+  const driveEmbedUrl = extractDriveEmbedUrl(videoDriveUrl);
+
   const [courseImgSrc, setCourseImgSrc] = useState(
     featuredCourse?.image || 'https://lh3.googleusercontent.com/d/1wlwo47CqCz9fjpKmEmySFXicbuXnQRZu=w1000'
   );
-  const [isZoomModalOpen, setIsZoomModalOpen] = useState(false);
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [activeModalTab, setActiveModalTab] = useState<'video' | 'image'>('video');
+  const [isPlayingInline, setIsPlayingInline] = useState(false);
 
   // Keep state updated if featuredCourse changes
   React.useEffect(() => {
@@ -40,6 +62,16 @@ export const Education: React.FC<EducationProps> = ({ t }) => {
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const openVideoModal = () => {
+    setActiveModalTab('video');
+    setIsMediaModalOpen(true);
+  };
+
+  const openImageModal = () => {
+    setActiveModalTab('image');
+    setIsMediaModalOpen(true);
   };
 
   return (
@@ -76,79 +108,166 @@ export const Education: React.FC<EducationProps> = ({ t }) => {
             <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
               {/* Media Column (Left) */}
               <div className="lg:col-span-5 flex flex-col space-y-4">
-                <div
-                  id="course-image-container"
-                  onClick={() => setIsZoomModalOpen(true)}
-                  className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-950 group shadow-md cursor-pointer"
-                  title="Click to view full image"
-                >
-                  <img
-                    src={courseImgSrc}
-                    alt={featuredCourse.degree}
-                    referrerPolicy="no-referrer"
-                    onError={() => {
-                      if (courseImgSrc.includes('lh3.googleusercontent.com')) {
-                        setCourseImgSrc(
-                          'https://drive.google.com/thumbnail?id=1wlwo47CqCz9fjpKmEmySFXicbuXnQRZu&sz=w1000'
-                        );
-                      }
-                    }}
-                    className="w-full h-64 sm:h-80 object-contain sm:object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-
-                  {/* Gradient Overlay & Badge */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-transparent to-slate-950/40 flex flex-col justify-between p-4 pointer-events-none">
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-600 text-white shadow-md">
-                        <Sparkles className="w-3 h-3 text-amber-300" />
-                        {featuredCourse.badge || 'FEATURED COURSE'}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-slate-900/80 backdrop-blur-sm text-slate-200 border border-slate-700/50">
-                        <Calendar className="w-3 h-3 text-indigo-400" />
-                        {featuredCourse.period}
-                      </span>
+                {isPlayingInline ? (
+                  /* Inline Video Player View */
+                  <div
+                    id="course-inline-video-container"
+                    className="relative rounded-2xl overflow-hidden border border-indigo-500/50 bg-black shadow-lg"
+                  >
+                    <div className="aspect-video w-full">
+                      <iframe
+                        src={driveEmbedUrl}
+                        title={`${featuredCourse.degree} Video`}
+                        className="w-full h-full border-0"
+                        allow="autoplay; encrypted-media; fullscreen"
+                        allowFullScreen
+                      />
                     </div>
-
-                    <div className="flex items-end justify-between">
-                      <div>
-                        <p className="text-xs font-medium text-slate-300">
-                          {featuredCourse.institution}
-                        </p>
-                        <h4 className="text-lg font-bold text-white tracking-tight">
-                          {featuredCourse.degree}
-                        </h4>
-                      </div>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-white/20 backdrop-blur-md text-white border border-white/30 group-hover:bg-indigo-600 group-hover:border-transparent transition-colors">
-                        <ZoomIn className="w-3.5 h-3.5" />
-                        <span>Preview</span>
+                    <div className="flex items-center justify-between p-2.5 bg-slate-900/95 border-t border-slate-800 text-xs">
+                      <span className="flex items-center gap-1.5 text-slate-300 font-medium font-mono text-[11px]">
+                        <Film className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Google Drive Video Stream</span>
                       </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={openVideoModal}
+                          className="px-2 py-1 rounded-md bg-indigo-600/80 hover:bg-indigo-600 text-white font-medium text-[11px] transition-colors"
+                        >
+                          Fullscreen
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsPlayingInline(false)}
+                          className="px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-[11px] transition-colors"
+                        >
+                          Close Player
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  /* Video Thumbnail / Poster View */
+                  <div
+                    id="course-image-container"
+                    onClick={openVideoModal}
+                    className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-950 group shadow-md cursor-pointer"
+                    title="Click to play course video"
+                  >
+                    <img
+                      src={courseImgSrc}
+                      alt={featuredCourse.degree}
+                      referrerPolicy="no-referrer"
+                      onError={() => {
+                        if (courseImgSrc.includes('lh3.googleusercontent.com')) {
+                          setCourseImgSrc(
+                            'https://drive.google.com/thumbnail?id=1wlwo47CqCz9fjpKmEmySFXicbuXnQRZu&sz=w1000'
+                          );
+                        }
+                      }}
+                      className="w-full h-64 sm:h-80 object-contain sm:object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
 
-                {/* Course Link Direct Actions */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  {featuredCourse.link && (
+                    {/* Gradient Overlay & Badge */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-slate-950/40 flex flex-col justify-between p-4 pointer-events-none">
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-600 text-white shadow-md">
+                          <Sparkles className="w-3 h-3 text-amber-300" />
+                          {featuredCourse.badge || 'FEATURED COURSE'}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-slate-900/80 backdrop-blur-sm text-slate-200 border border-slate-700/50">
+                          <Calendar className="w-3 h-3 text-indigo-400" />
+                          {featuredCourse.period}
+                        </span>
+                      </div>
+
+                      {/* Large Center Play Button Overlay */}
+                      <div className="flex items-center justify-center my-auto">
+                        <div
+                          id="play-course-video-btn"
+                          className="relative flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-indigo-600/90 hover:bg-indigo-600 text-white shadow-2xl shadow-indigo-600/50 group-hover:scale-110 active:scale-95 transition-all duration-300 border-2 border-white/40 backdrop-blur-sm"
+                          aria-label="Play BUILD SOFTWARE WITH AI video"
+                        >
+                          <span className="absolute inset-0 rounded-full bg-indigo-500 animate-ping opacity-30 pointer-events-none" />
+                          <Play className="w-7 h-7 sm:w-8 sm:h-8 fill-white text-white translate-x-0.5" />
+                        </div>
+                      </div>
+
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-slate-300">
+                            {featuredCourse.institution}
+                          </p>
+                          <h4 className="text-lg font-bold text-white tracking-tight flex items-center gap-1.5">
+                            <span>{featuredCourse.degree}</span>
+                          </h4>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-indigo-600/90 text-white border border-indigo-400/40 shadow-sm">
+                          <Video className="w-3.5 h-3.5" />
+                          <span>Watch Video</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Course Link & Video Direct Actions */}
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <button
+                      id="course-watch-video-btn"
+                      type="button"
+                      onClick={openVideoModal}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Play className="w-4 h-4 fill-white" />
+                      <span>Watch Video</span>
+                    </button>
+
                     <a
                       id="course-google-drive-link"
-                      href={featuredCourse.link}
+                      href={videoDriveUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition-all active:scale-95 shadow-sm"
                     >
-                      <ExternalLink className="w-4 h-4" />
-                      <span>View Course on Drive</span>
+                      <ExternalLink className="w-4 h-4 text-indigo-500" />
+                      <span>Open on Drive</span>
                     </a>
-                  )}
-                  <button
-                    id="course-inquire-btn"
-                    type="button"
-                    onClick={scrollToContact}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm border border-slate-300 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition-all active:scale-95"
-                  >
-                    <span>Inquire / Enroll</span>
-                    <ArrowRight className="w-4 h-4 text-indigo-500" />
-                  </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      id="course-inline-toggle-btn"
+                      type="button"
+                      onClick={() => setIsPlayingInline(!isPlayingInline)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-300 transition-colors"
+                    >
+                      <Film className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>{isPlayingInline ? 'Hide Inline Player' : 'Play Video Inline'}</span>
+                    </button>
+
+                    <button
+                      id="course-poster-preview-btn"
+                      type="button"
+                      onClick={openImageModal}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-300 transition-colors"
+                      title="View course infographic poster"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Poster</span>
+                    </button>
+
+                    <button
+                      id="course-inquire-btn"
+                      type="button"
+                      onClick={scrollToContact}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 transition-colors"
+                    >
+                      <span>Inquire / Enroll</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -276,49 +395,76 @@ export const Education: React.FC<EducationProps> = ({ t }) => {
         )}
       </div>
 
-      {/* Full Image Zoom Lightbox Modal */}
+      {/* Video / Full Media Lightbox Modal */}
       <AnimatePresence>
-        {isZoomModalOpen && featuredCourse && (
+        {isMediaModalOpen && featuredCourse && (
           <motion.div
-            id="course-image-zoom-modal"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/85 backdrop-blur-md"
+            id="course-media-modal-backdrop"
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setIsZoomModalOpen(false)}
+            onClick={() => setIsMediaModalOpen(false)}
           >
             <motion.div
-              className="relative max-w-4xl w-full max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+              className="relative max-w-4xl w-full max-h-[92vh] bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900/90">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400">
-                    PREVIEW
-                  </span>
-                  <h4 className="text-sm font-bold text-white truncate max-w-xs sm:max-w-md">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900/95">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex items-center rounded-lg bg-slate-800/90 p-0.5 border border-slate-700/60 text-xs">
+                    <button
+                      id="modal-tab-video-btn"
+                      type="button"
+                      onClick={() => setActiveModalTab('video')}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                        activeModalTab === 'video'
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Video className="w-3.5 h-3.5" />
+                      <span>Video Player</span>
+                    </button>
+                    <button
+                      id="modal-tab-poster-btn"
+                      type="button"
+                      onClick={() => setActiveModalTab('image')}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                        activeModalTab === 'image'
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Course Poster</span>
+                    </button>
+                  </div>
+                  <h4 className="text-xs sm:text-sm font-bold text-white truncate hidden md:block">
                     {featuredCourse.degree}
                   </h4>
                 </div>
+
                 <div className="flex items-center gap-2">
-                  {featuredCourse.link && (
-                    <a
-                      href={featuredCourse.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Open Drive</span>
-                    </a>
-                  )}
+                  <a
+                    id="modal-google-drive-direct-link"
+                    href={videoDriveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shadow-sm"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Open in Drive</span>
+                  </a>
                   <button
+                    id="modal-close-btn"
                     type="button"
-                    onClick={() => setIsZoomModalOpen(false)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    onClick={() => setIsMediaModalOpen(false)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
                     aria-label="Close modal"
                   >
                     <X className="w-5 h-5" />
@@ -326,13 +472,42 @@ export const Education: React.FC<EducationProps> = ({ t }) => {
                 </div>
               </div>
 
-              <div className="p-3 sm:p-5 overflow-auto flex items-center justify-center bg-slate-950/80 max-h-[78vh]">
-                <img
-                  src={courseImgSrc}
-                  alt={featuredCourse.degree}
-                  referrerPolicy="no-referrer"
-                  className="max-w-full max-h-[72vh] object-contain rounded-lg shadow-xl"
-                />
+              {/* Modal Body */}
+              <div className="p-3 sm:p-5 overflow-auto flex flex-col items-center justify-center bg-slate-950/90 max-h-[80vh]">
+                {activeModalTab === 'video' ? (
+                  <div className="w-full aspect-video rounded-xl overflow-hidden bg-black shadow-2xl border border-slate-800 relative">
+                    <iframe
+                      src={driveEmbedUrl}
+                      title={`${featuredCourse.degree} Video Player`}
+                      className="w-full h-full border-0"
+                      allow="autoplay; encrypted-media; fullscreen"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : (
+                  <img
+                    src={courseImgSrc}
+                    alt={featuredCourse.degree}
+                    referrerPolicy="no-referrer"
+                    className="max-w-full max-h-[72vh] object-contain rounded-lg shadow-xl"
+                  />
+                )}
+
+                {/* Media Footer Details */}
+                <div className="w-full mt-3 pt-2.5 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
+                  <span className="font-mono text-[11px] text-slate-400 flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-indigo-400" />
+                    <span>Google Drive Video Demo • BUILD SOFTWARE WITH AI</span>
+                  </span>
+                  <a
+                    href={videoDriveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 underline font-mono truncate max-w-xs sm:max-w-md"
+                  >
+                    {videoDriveUrl}
+                  </a>
+                </div>
               </div>
             </motion.div>
           </motion.div>

@@ -505,6 +505,7 @@ export const portfolio: PortfolioData = {
       badge: 'FEATURED COURSE',
       image: 'https://lh3.googleusercontent.com/d/1wlwo47CqCz9fjpKmEmySFXicbuXnQRZu=w1000',
       link: 'https://drive.google.com/file/d/1wlwo47CqCz9fjpKmEmySFXicbuXnQRZu/view?usp=drivesdk',
+      videoUrl: 'https://drive.google.com/file/d/1wlwo47CqCz9fjpKmEmySFXicbuXnQRZu/view?usp=drivesdk',
       description:
         'Turn your ideas into real software faster with the power of Artificial Intelligence 🤖💻\n\nFrom idea → design → code → database → API → testing → production, AI can help accelerate the entire software development process.\n\n🔥 Learn. Build. Automate. Launch.',
       syllabus: [

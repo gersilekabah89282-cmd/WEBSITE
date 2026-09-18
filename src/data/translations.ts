@@ -165,6 +165,17 @@ export interface TranslationDictionary {
     connect: string;
     backToTop: string;
     rights: string;
+    newsletterTitle: string;
+    newsletterSubtitle: string;
+    newsletterPlaceholder: string;
+    newsletterSubscribeBtn: string;
+    newsletterSubscribing: string;
+    newsletterSuccess: string;
+    newsletterAlreadySubscribed: string;
+    newsletterInvalidEmail: string;
+    newsletterHelperInvalid: string;
+    newsletterHelperValid: string;
+    newsletterPrivacy: string;
   };
 }
 
@@ -343,6 +354,18 @@ export const translations: Record<'en' | 'km', TranslationDictionary> = {
       connect: 'Connect With Me',
       backToTop: 'Back to Top',
       rights: 'All rights reserved.',
+      newsletterTitle: 'Developer & Architecture Newsletter',
+      newsletterSubtitle:
+        'Stay informed with practical full-stack insights, software architecture deep dives, and early updates on new open-source projects.',
+      newsletterPlaceholder: 'Enter your work or personal email...',
+      newsletterSubscribeBtn: 'Subscribe',
+      newsletterSubscribing: 'Subscribing...',
+      newsletterSuccess: 'Thank you for subscribing! You have been added to the newsletter list.',
+      newsletterAlreadySubscribed: 'This email is already subscribed to updates.',
+      newsletterInvalidEmail: 'Please enter a valid email address.',
+      newsletterHelperInvalid: 'Please enter a valid email format (e.g., name@example.com).',
+      newsletterHelperValid: 'Email format is valid and ready to subscribe.',
+      newsletterPrivacy: 'Strictly zero spam. Unsubscribe at any time.',
     },
   },
   km: {
@@ -519,6 +542,18 @@ export const translations: Record<'en' | 'km', TranslationDictionary> = {
       connect: 'ភ្ជាប់ទំនាក់ទំនងជាមួយខ្ញុំ',
       backToTop: 'ត្រឡប់ទៅលើវិញ',
       rights: 'រក្សាសិទ្ធិគ្រប់យ៉ាង។',
+      newsletterTitle: 'ព្រឹត្តិបត្រព័ត៌មានបច្ចេកវិទ្យា & ស្ថាបត្យកម្មកូដ',
+      newsletterSubtitle:
+        'ទទួលបានគន្លឹះអភិវឌ្ឍន៍ Full-Stack ស្ថាបត្យកម្មប្រព័ន្ធទំនើប និងព័ត៌មានគម្រោងថ្មីៗផ្ទាល់ទៅកាន់អ៊ីមែលរបស់អ្នក។',
+      newsletterPlaceholder: 'បញ្ចូលអាសយដ្ឋានអ៊ីមែលរបស់អ្នក...',
+      newsletterSubscribeBtn: 'ចុះឈ្មោះជាវ',
+      newsletterSubscribing: 'កំពុងដំណើរការ...',
+      newsletterSuccess: 'សូមអរគុណសម្រាប់ការជាវ! អ្នកត្រូវបានបន្ថែមទៅក្នុងបញ្ជីព្រឹត្តិបត្រព័ត៌មានដោយជោគជ័យ។',
+      newsletterAlreadySubscribed: 'អ៊ីមែលនេះបានចុះឈ្មោះជាវរួចរាល់ហើយ។',
+      newsletterInvalidEmail: 'សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលដែលត្រឹមត្រូវ។',
+      newsletterHelperInvalid: 'សូមបញ្ចូលទម្រង់អ៊ីមែលដែលត្រឹមត្រូវ (ឧទាហរណ៍៖ name@example.com)។',
+      newsletterHelperValid: 'ទម្រង់អ៊ីមែលត្រឹមត្រូវ រួចរាល់សម្រាប់ការចុះឈ្មោះ។',
+      newsletterPrivacy: 'គ្មានសារឥតបានការឡើយ។ អាចឈប់ជាវបានគ្រប់ពេល។',
     },
   },
 };

@@ -3,6 +3,7 @@ import { Terminal as TerminalIcon, X, Maximize2, Minimize2, ChevronRight, Corner
 import { portfolio } from '../data/portfolio';
 import { ThemeMode, Language } from '../types';
 import { useToast } from './Toast';
+import { newsletterService } from '../services/newsletterService';
 
 interface DevTerminalProps {
   isOpen?: boolean;
@@ -30,6 +31,8 @@ const COMMAND_LIST = [
   'contact',
   'hire',
   'resume',
+  'newsletter',
+  'subscribers',
   'theme dark',
   'theme light',
   'lang km',
@@ -86,7 +89,7 @@ export const DevTerminal: React.FC<DevTerminalProps> = ({
     terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [output, isOpen]);
 
-  const handleCommand = (rawInput: string) => {
+  const handleCommand = async (rawInput: string) => {
     const trimmed = rawInput.trim();
     if (!trimmed) return;
 
@@ -117,6 +120,8 @@ export const DevTerminal: React.FC<DevTerminalProps> = ({
   • contact        - Display direct email, phone, and messaging handles
   • hire           - Scroll directly to contact inquiry form
   • resume         - Open full interactive CV & export modal
+  • subscribers    - List persisted newsletter subscribers (localStorage)
+  • subscribe <em\> - Subscribe email to newsletter via Mock API
   • theme [mode]   - Change appearance (dark | light | system)
   • lang [code]    - Change language (en | km)
   • matrix         - Toggle hacker matrix visual theme
@@ -219,6 +224,51 @@ Summary:  ${portfolio.personal.description}`,
         });
         onOpenResume();
         break;
+
+      case 'newsletter':
+      case 'subscribers': {
+        const list = newsletterService.getSavedSubscribers();
+        const mySub = newsletterService.getMySubscribedEmail();
+        const formatted = list
+          .map((s, idx) => `  [${idx + 1}] ${s.email.padEnd(34)} ${new Date(s.timestamp).toLocaleDateString()}`)
+          .join('\n');
+        newLines.push({
+          id: `out-${Date.now()}`,
+          type: 'output',
+          content: `📬 Newsletter Subscribers (${list.length} persisted in localStorage):\n${formatted}\n${
+            mySub ? `\n• Current Device Registered Email: ${mySub}` : ''
+          }\n• Storage Key: portfolio_newsletter_subscribers (persists across page reloads)\n• Use: subscribe <email> to test subscription directly from terminal!`,
+        });
+        break;
+      }
+
+      case 'subscribe': {
+        if (!param) {
+          newLines.push({
+            id: `err-${Date.now()}`,
+            type: 'error',
+            content: 'Usage: subscribe <email@example.com>',
+          });
+          break;
+        }
+
+        const res = await newsletterService.subscribe(param);
+        if (res.success) {
+          newLines.push({
+            id: `out-${Date.now()}`,
+            type: 'success',
+            content: `✓ Success: Subscribed ${param} (Total subscribers: ${res.totalSubscribers})\nState saved to localStorage and synchronized.`,
+          });
+          showToast(`Subscribed: ${param}`);
+        } else {
+          newLines.push({
+            id: `err-${Date.now()}`,
+            type: 'error',
+            content: `✗ Subscription notice: ${res.message}`,
+          });
+        }
+        break;
+      }
 
       case 'theme': {
         if (param === 'dark' || param === 'light' || param === 'system') {

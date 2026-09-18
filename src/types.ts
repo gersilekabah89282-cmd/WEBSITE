@@ -87,6 +87,7 @@ export interface EducationItem {
   honors?: string;
   image?: string;
   link?: string;
+  videoUrl?: string;
   badge?: string;
   syllabus?: string[];
   tags?: string[];
@@ -145,4 +146,19 @@ export interface PortfolioData {
   testimonials: TestimonialItem[];
   codeSnippets: CodeSnippetItem[];
   faqs: FAQItem[];
+}
+
+export interface NewsletterSubscriber {
+  id: string;
+  email: string;
+  timestamp: string;
+  verified?: boolean;
+}
+
+export interface NewsletterSubscriptionResult {
+  success: boolean;
+  code: 'SUCCESS' | 'ALREADY_SUBSCRIBED' | 'INVALID_EMAIL' | 'SERVER_ERROR';
+  message: string;
+  subscriber?: NewsletterSubscriber;
+  totalSubscribers: number;
 }
