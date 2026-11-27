@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>កម្មវិធីបង្ហោះវីដេអូ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1226;
+    --bg-2: #161a36;
+    --card: #1c2142;
+    --card-2: #232955;
+    --border: #2e356b;
+    --text: #eef1ff;
+    --muted: #9aa3d4;
+    --accent: #7c5cff;
+    --accent-2: #4f8cff;
+    --accent-grad: linear-gradient(135deg, #7c5cff 0%, #4f8cff 100%);
+    --ok: #2ed47a;
+    --warn: #ffb547;
+    --err: #f25f5c;
+    --radius: 14px;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans Khmer', system-ui, -apple-system, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(124,92,255,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(79,140,255,.15), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: clamp(16px, 4vw, 36px);
+  }
+
+  header.app-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: clamp(16px, 3vw, 24px);
+  }
+  .logo {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: var(--accent-grad);
+    display: grid; place-items: center;
+    box-shadow: 0 6px 18px rgba(124,92,255,.45);
+    flex: 0 0 auto;
+  }
+  .logo svg { width: 26px; height: 26px; fill: #fff; }
+  .app-head h1 {
+    margin: 0;
+    font-size: clamp(1.3rem, 4vw, 1.8rem);
+    font-weight: 700;
+    letter-spacing: .2px;
+  }
+  .app-head .sub {
+    color: var(--muted);
+    font-size: clamp(.8rem, 2.4vw, .95rem);
+    margin-top: 2px;
+  }
+
+  .card {
+    background: linear-gradient(180deg, var(--card), var(--card-2));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: clamp(16px, 3vw, 24px);
+    margin-bottom: 18px;
+  }
+
+  /* Drop zone */
+  .drop {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: clamp(24px, 6vw, 48px) 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .18s, background .18s, transform .18s;
+    background: rgba(124,92,255,.04);
+  }
+  .drop:hover { border-color: var(--accent); background: rgba(124,92,255,.09); }
+  .drop.drag {
+    border-color: var(--accent);
+    background: rgba(124,92,255,.16);
+    transform: scale(1.01);
+  }
+  .drop .ico {
+    width: 64px; height: 64px; margin: 0 auto 14px;
+    border-radius: 50%;
+    background: rgba(124,92,255,.15);
+    display: grid; place-items: center;
+  }
+  .drop .ico svg { width: 34px; height: 34px; fill: var(--accent); }
+  .drop .t1 { font-size: clamp(1rem, 3vw, 1.15rem); font-weight: 600; margin-bottom: 6px; }
+  .drop .t2 { color: var(--muted); font-size: clamp(.8rem, 2.4vw, .92rem); }
+  .drop .browse { color: var(--accent-2); font-weight: 600; text-decoration: underline; }
+  .drop input { display: none; }
+
+  /* Settings */
+  .settings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: .82rem; color: var(--muted); font-weight: 500; }
+  .field input, .field select {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-size: .92rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+
+  /* Stats + actions */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; flex: 1 1 auto; }
+  .pill {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: .82rem;
+    color: var(--muted);
+  }
+  .pill b { color: var(--text); font-weight: 600; }
+
+  .btn {
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 18px;
+    font-size: .92rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform .12s, opacity .15s, background .15s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primary { background: var(--accent-grad); color: #fff; box-shadow: 0 6px 16px rgba(124,92,255,.4); }
+  .btn-primary:hover:not(:disabled) { opacity: .92; }
+  .btn-ghost { background: var(--bg-2); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--accent); }
+  .btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+  /* Queue */
+  .queue-title {
+    font-size: 1rem; font-weight: 600; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .empty {
+    text-align: center; color: var(--muted);
+    padding: 30px 10px; font-size: .9rem;
+  }
+
+  .item {
+    display: grid;
+    grid-template-columns: 130px 1fr auto;
+    gap: 14px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  .item .thumb {
+    width: 130px; height: 78px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+    position: relative;
+  }
+  .item .thumb img, .item .thumb video {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .item .thumb .dur {
+    position: absolute; right: 4px; bottom: 4px;
+    background: rgba(0,0,0,.78); color: #fff;
+    font-size: .72rem; padding: 2px 6px; border-radius: 4px;
+  }
+  .item .info { min-width: 0; }
+  .item .name {
+    font-weight: 600; font-size: .92rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+  .item .meta { color: var(--muted); font-size: .78rem; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .item .meta span b { color: var(--text); font-weight: 500; }
+  .item .right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .item .status { font-size: .76rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .status.wait { background: rgba(154,163,212,.18); color: var(--muted); }
+  .status.up { background: rgba(79,140,255,.18); color: var(--accent-2); }
+  .status.done { background: rgba(46,212,122,.18); color: var(--ok); }
+  .status.err { background: rgba(242,95,92,.18); color: var(--err); }
+  .icon-btn {
+    background: transparent; border: 0; cursor: pointer;
+    width: 32px; height: 32px; border-radius: 8px;
+    display: grid; place-items: center; color: var(--muted);
+    transition: background .15s, color .15s;
+  }
+  .icon-btn:hover { background: rgba(242,95,92,.15); color: var(--err); }
+  .icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+  .progress {
+    height: 6px; border-radius: 999px;
+    background: var(--border); overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress .bar {
+    height: 100%; width: 0%;
+    background: var(--accent-grad);
+    transition: width .15s ease;
+  }
+  .progress .bar.done { background: var(--ok); }
+  .progress .bar.err { background: var(--err); }
+
+  /* Toast */
+  .toast-wrap {
+    position: fixed; left: 50%; bottom: 24px;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 100; width: max-content; max-width: 92vw;
+  }
+  .toast {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: .88rem;
+    box-shadow: var(--shadow);
+    animation: pop .25s ease;
+  }
+  .toast.ok { border-left-color: var(--ok); }
+  .toast.err { border-left-color: var(--err); }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  footer.app-foot {
+    text-align: center; color: var(--muted);
+    font-size: .8rem; padding: 18px 0 6px;
+  }
+  footer.app-foot code {
+    background: var(--bg-2); border: 1px solid var(--border);
+    padding: 2px 7px; border-radius: 6px; color: var(--accent-2);
+  }
+
+  /* Preview modal */
+  .modal {
+    position: fixed; inset: 0;
+    background: rgba(8,10,24,.82);
+    display: none; place-items: center;
+    z-index: 200; padding: 16px;
+  }
+  .modal.show { display: grid; }
+  .modal .box {
+    max-width: 760px; width: 100%;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  .modal video { width: 100%; max-height: 70vh; display: block; background: #000; }
+  .modal .bar2 {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; gap: 10px;
+  }
+  .modal .bar2 .nm { font-weight: 600; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  @media (max-width: 560px) {
+    .item { grid-template-columns: 92px 1fr; }
+    .item .thumb { width: 92px; height: 56px; }
+    .item .right { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; }
+    .item .progress { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="app-head">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm5 3v8l7-4-7-4z"/></svg>
+    </div>
+    <div>
+      <h1>កម្មវិធីបង្ហោះវីដេអូ</h1>
+      <div class="sub">ទាញ​ហើយ​ដាក់ ឬ​ជ្រើស​រើស​វីដេអូ រួច​បង្ហោះ​យ៉ាង​ងាយ​ស្រួល</div>
+    </div>
+  </header>
+
+  <!-- Upload + drop zone -->
+  <section class="card">
+    <div class="drop" id="drop">
+      <div class="ico">
+        <svg viewBox="0 0 24 24"><path d="M12 3a1 1 0 0 1 1 1v9.59l2.3-2.3a1 1 0 1 1 1.4 1.42l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.42L11 13.6V4a1 1 0 0 1 1-1zM5 19a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1z"/></svg>
+      </div>
+      <div class="t1">ទាញ​ហើយ​ដាក់​វីដេអូ​នៅ​ទីនេះ</div>
+      <div class="t2">ឬ <span class="browse">ចុច​ដើម្បី​ជ្រើស​រើស​ឯកសារ</span> · គាំទ្រ MP4, WebM, MOV, AVI, MKV</div>
+      <input type="file" id="fileInput" accept="video/*" multiple>
+    </div>
+
+    <div class="settings">
+      <div class="field">
+        <label for="endpoint">URL ទទួល​ឯកសារ (Upload Endpoint)</label>
+        <input type="text" id="endpoint" value="/upload" placeholder="https://example.com/upload">
+      </div>
+      <div class="field">
+        <label for="maxSize">ទំហំ​អតិបរមា​ក្នុង​មួយ​ឯកសារ (MB)</label>
+        <input type="number" id="maxSize" value="500" min="1">
+      </div>
+      <div class="field">
+        <label for="concurrent">បង្ហោះ​ផ្ទាល់​គ្នា (Concurrency)</label>
+        <select id="concurrent">
+          <option value="1">1 ឯកសារ</option>
+          <option value="2">2 ឯកសារ</option>
+          <option value="3" selected>3 ឯកសារ</option>
+          <option value="5">5 ឯកសារ</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Queue -->
+  <section class="card">
+    <div class="toolbar">
+      <div class="stats">
+        <span class="pill">ឯកសារ៖ <b id="stCount">0</b></span>
+        <span class="pill">ទំហំ​សរុប៖ <b id="stSize">0 B</b></span>
+        <span class="pill">បាន​បង្ហោះ៖ <b id="stDone">0</b></span>
+      </div>
+      <button class="btn btn-ghost" id="clearBtn">
+        <svg viewBox="0 0 24 24"><path d="M6 7h12v13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7zm3-3h6l1 2H8l1-2z"/></svg>
+        សម្អាត
+      </button>
+      <button class="btn btn-primary" id="uploadBtn" disabled>
+        <svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v12.6l4.3-4.3a1 1 0 1 1 1.4 1.42l-6 6a1 1 0 0 1-1.4 0l-6-6a1 1 0 1 1 1.4-1.42L11 15.6V3a1 1 0 0 1 1-1zM4 20h16a1 1 0 1 1 0 2H4a1 1 0 1 1 0-2z"/></svg>
+        បង្ហោះ​ទាំងអស់
+      </button>
+    </div>
+
+    <h2 class="queue-title">បញ្ជី​វីដេអូ​រង់​ចាំ</h2>
+    <div id="queue">
+      <div class="empty" id="empty">មិន​ទាន់​មាន​វីដេអូ​ទេ។ សូម​បន្ថែម​វីដេអូ​ដើម្បី​ចាប់​ផ្តើម។</div>
+    </div>
+  </section>
+
+  <footer class="app-foot">
+    ដើម្បី​បង្ហោះ​ពិត​ប្រាកដ សូម​ដំណើរការ​ server ៖ <code>python upload_server.py</code> រួច​បើក <code>http://localhost:8000</code>
+  </footer>
+
+</div>
+
+<!-- Preview modal -->
+<div class="modal" id="modal">
+  <div class="box">
+    <video id="modalVideo" controls></video>
+    <div class="bar2">
+      <span class="nm" id="modalName"></span>
+      <button class="btn btn-ghost" id="modalClose">បិទ</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var drop = $("drop"), fileInput = $("fileInput"), queueEl = $("queue"), emptyEl = $("empty");
+  var endpointEl = $("endpoint"), maxSizeEl = $("maxSize"), concurrentEl = $("concurrent");
+  var uploadBtn = $("uploadBtn"), clearBtn = $("clearBtn");
+  var stCount = $("stCount"), stSize = $("stSize"), stDone = $("stDone");
+  var modal = $("modal"), modalVideo = $("modalVideo"), modalName = $("modalName"), modalClose = $("modalClose");
+  var toasts = $("toasts");
+
+  var queue = [];          // {id, file, url, name, size, type, dur, w, h, thumb, status, progress, xhr}
+  var running = 0, doneCount = 0;
+  var seq = 0;
+
+  /* ---------- helpers ---------- */
+  function fmtSize(b) {
+    if (b == null) return "—";
+    var u = ["B", "KB", "MB", "GB", "TB"]; var i = 0; var n = b;
+    while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+    return (i === 0 ? n : n.toFixed(n < 10 ? 2 : 1)) + " " + u[i];
+  }
+  function fmtTime(s) {
+    if (!s || !isFinite(s)) return "—";
+    s = Math.round(s);
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    var p = function (x) { return (x < 10 ? "0" : "") + x; };
+    return (h > 0 ? h + ":" + p(m) : p(m)) + ":" + p(sec);
+  }
+  function toast(msg, kind) {
+    var t = document.createElement("div");
+    t.className = "toast" + (kind ? " " + kind : "");
+    t.textContent = msg;
+    toasts.appendChild(t);
+    setTimeout(function () { t.style.opacity = "0"; t.style.transition = "opacity .3s"; }, 2600);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3000);
+  }
+  function statusLabel(s) {
+    return { wait: "រង់​ចាំ", up: "កំពុង​បង្ហោះ", done: "បាន​បង្ហោះ", err: "បរាជ័យ" }[s] || s;
+  }
+
+  /* ---------- file handling ---------- */
+  function addFiles(files) {
+    var maxMB = parseFloat(maxSizeEl.value) || 0;
+    var maxB = maxMB * 1024 * 1024;
+    var added = 0, rejected = 0;
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      if (!f.type.startsWith("video/") && !/\.(mp4|webm|mov|avi|mkv|m4v|ogv)$/i.test(f.name)) {
+        toast("«" + f.name + "» មិន​មែន​ជា​វីដេអូ", "err"); rejected++; continue;
+      }
+      if (maxB && f.size > maxB) {
+        toast("«" + f.name + "» ធំ​ជាង " + maxMB + " MB", "err"); rejected++; continue;
+      }
+      var item = {
+        id: ++seq, file: f, url: URL.createObjectURL(f),
+        name: f.name, size: f.size, type: f.type || "video/mp4",
+        dur: null, w: null, h: null, thumb: null,
+        status: "wait", progress: 0, xhr: null
+      };
+      queue.push(item);
+      added++;
+      loadMeta(item);
+    }
+    if (added) toast("បាន​បន្ថែម " + added + " វីដេអូ", "ok");
+    render();
+  }
+
+  function loadMeta(item) {
+    var v = document.createElement("video");
+    v.preload = "metadata"; v.src = item.url;
+    v.muted = true;
+    v.addEventListener("loadedmetadata", function () {
+      item.dur = v.duration; item.w = v.videoWidth; item.h = v.videoHeight;
+      var t = Math.min(1, v.duration ? v.duration * 0.1 : 0);
+      try { v.currentTime = t; } catch (e) {}
+    });
+    v.addEventListener("seeked", function () {
+      try {
+        var c = document.createElement("canvas");
+        var scale = Math.min(1, 200 / (v.videoWidth || 200));
+        c.width = (v.videoWidth || 200) * scale;
+        c.height = (v.videoHeight || 120) * scale;
+        var ctx = c.getContext("2d");
+        ctx.drawImage(v, 0, 0, c.width, c.height);
+        item.thumb = c.toDataURL("image/jpeg", 0.7);
+      } catch (e) { item.thumb = null; }
+      renderRow(item);
+    });
+    v.addEventListener("error", function () { renderRow(item); });
+  }
+
+  /* ---------- rendering ---------- */
+  function render() {
+    stCount.textContent = queue.length;
+    var total = 0; for (var i = 0; i < queue.length; i++) total += queue[i].size;
+    stSize.textContent = fmtSize(total);
+    stDone.textContent = doneCount;
+    uploadBtn.disabled = queue.length === 0 || queue.every(function (x) { return x.status === "done" || x.status === "up"; });
+
+    if (queue.length === 0) {
+      emptyEl.style.display = "block";
+      var rows = queueEl.querySelectorAll(".item");
+      for (var j = 0; j < rows.length; j++) rows[j].remove();
+      return;
+    }
+    emptyEl.style.display = "none";
+
+    for (var k = 0; k < queue.length; k++) {
+      var it = queue[k];
+      if (!document.getElementById("row-" + it.id)) renderRow(it);
+    }
+  }
+
+  function el(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html != null) e.innerHTML = html;
+    return e;
+  }
+
+  function renderRow(item) {
+    var existing = document.getElementById("row-" + item.id);
+    var row = existing || el("div", "item");
+    row.id = "row-" + item.id;
+    row.innerHTML = "";
+
+    var thumb = el("div", "thumb");
+    if (item.thumb) {
+      var img = el("img"); img.src = item.thumb; img.alt = ""; thumb.appendChild(img);
+    } else {
+      var vv = document.createElement("video"); vv.src = item.url; vv.muted = true; thumb.appendChild(vv);
+    }
+    var dur = el("div", "dur"); dur.textContent = fmtTime(item.dur); thumb.appendChild(dur);
+    row.appendChild(thumb);
+
+    var info = el("div", "info");
+    info.appendChild(el("div", "name", escapeHtml(item.name)));
+    var meta = el("div", "meta");
+    meta.appendChild(el("span", null, "ទំហំ៖ <b>" + fmtSize(item.size) + "</b>"));
+    if (item.w && item.h) meta.appendChild(el("span", null, "ទំហំ​វីដេអូ៖ <b>" + item.w + "×" + item.h + "</b>"));
+    meta.appendChild(el("span", null, "ប្រភេទ៖ <b>" + (item.type || "—") + "</b>"));
+    info.appendChild(meta);
+    var prog = el("div", "progress");
+    var bar = el("div", "bar");
+    if (item.status === "done") bar.classList.add("done");
+    if (item.status === "err") bar.classList.add("err");
+    bar.style.width = item.progress + "%";
+    prog.appendChild(bar);
+    info.appendChild(prog);
+    row.appendChild(info);
+
+    var right = el("div", "right");
+    var st = el("div", "status " + item.status, statusLabel(item.status));
+    right.appendChild(st);
+    var btns = el("div"); btns.style.display = "flex"; btns.style.gap = "4px";
+    if (item.status !== "up") {
+      var prev = el("button", "icon-btn",
+        '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>');
+      prev.title = "មើល​ជា​មុន";
+      prev.addEventListener("click", function () { openModal(item); });
+      btns.appendChild(prev);
+    }
+    var rm = el("button", "icon-btn",
+      '<svg viewBox="0 0 24 24"><path d="M6 7h12v13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7zm3-3h6l1 2H8l1-2z"/></svg>');
+    rm.title = "លុប";
+    rm.addEventListener("click", function () { removeItem(item.id); });
+    btns.appendChild(rm);
+    right.appendChild(btns);
+    row.appendChild(right);
+
+    if (!existing) queueEl.appendChild(row);
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  /* ---------- modal ---------- */
+  function openModal(item) {
+    modalVideo.src = item.url;
+    modalName.textContent = item.name;
+    modal.classList.add("show");
+    modalVideo.play().catch(function () {});
+  }
+  modalClose.addEventListener("click", function () {
+    modal.classList.remove("show");
+    modalVideo.pause(); modalVideo.removeAttribute("src"); modalVideo.load();
+  });
+  modal.addEventListener("click", function (e) {
+    if (e.target === modal) modalClose.click();
+  });
+
+  /* ---------- remove ---------- */
+  function removeItem(id) {
+    var idx = -1;
+    for (var i = 0; i < queue.length; i++) { if (queue[i].id === id) { idx = i; break; } }
+    if (idx < 0) return;
+    var it = queue[idx];
+    if (it.xhr) { try { it.xhr.abort(); } catch (e) {} running = Math.max(0, running - 1); }
+    if (it.url) URL.revokeObjectURL(it.url);
+    queue.splice(idx, 1);
+    var row = document.getElementById("row-" + id);
+    if (row) row.remove();
+    render();
+    pump();
+  }
+
+  /* ---------- upload ---------- */
+  function startUploads() {
+    if (uploadBtn.disabled) return;
+    var endpoint = endpointEl.value.trim() || "/upload";
+    var pending = queue.filter(function (x) { return x.status === "wait" || x.status === "err"; });
+    if (pending.length === 0) { toast("មិន​មាន​វីដេអូ​រង់​ចាំ​បង្ហោះ", "err"); return; }
+    for (var i = 0; i < pending.length; i++) {
+      if (pending[i].status === "err") { pending[i].status = "wait"; pending[i].progress = 0; renderRow(pending[i]); }
+    }
+    toast("កំពុង​បង្ហោះ " + pending.length + " វីដេអូ…", "ok");
+    pump();
+  }
+
+  function pump() {
+    var max = parseInt(concurrentEl.value, 10) || 1;
+    while (running < max) {
+      var next = null;
+      for (var i = 0; i < queue.length; i++) {
+        if (queue[i].status === "wait") { next = queue[i]; break; }
+      }
+      if (!next) break;
+      uploadOne(next);
+    }
+    render();
+  }
+
+  function uploadOne(item) {
+    var endpoint = endpointEl.value.trim() || "/upload";
+    item.status = "up"; item.progress = 0; renderRow(item);
+    running++;
+
+    var xhr = new XMLHttpRequest();
+    item.xhr = xhr;
+    xhr.open("POST", endpoint, true);
+
+    var fd = new FormData();
+    fd.append("file", item.file, item.name);
+    fd.append("name", item.name);
+    fd.append("size", String(item.size));
+    fd.append("type", item.type);
+
+    xhr.upload.addEventListener("progress", function (e) {
+      if (e.lengthComputable) {
+        item.progress = Math.round(e.loaded / e.total * 100);
+        renderRow(item);
+      }
+    });
+    xhr.addEventListener("load", function () {
+      running--;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        item.status = "done"; item.progress = 100; doneCount++;
+        toast("បាន​បង្ហោះ «" + item.name + "»", "ok");
+      } else {
+        item.status = "err"; item.progress = 0;
+        toast("បរាជ័យ «" + item.name + "» (HTTP " + xhr.status + ")", "err");
+      }
+      renderRow(item); render(); pump();
+    });
+    xhr.addEventListener("error", function () {
+      running--;
+      item.status = "err"; item.progress = 0;
+      toast("កំហុស​បណ្តាញ «" + item.name + "»", "err");
+      renderRow(item); render(); pump();
+    });
+    xhr.addEventListener("abort", function () {
+      running--;
+      render(); pump();
+    });
+    xhr.send(fd);
+  }
+
+  /* ---------- events ---------- */
+  drop.addEventListener("click", function () { fileInput.click(); });
+  fileInput.addEventListener("change", function () {
+    if (fileInput.files.length) addFiles(fileInput.files);
+    fileInput.value = "";
+  });
+  ["dragenter", "dragover"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); drop.classList.add("drag"); });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); drop.classList.remove("drag"); });
+  });
+  drop.addEventListener("drop", function (e) {
+    var dt = e.dataTransfer;
+    if (dt && dt.files && dt.files.length) addFiles(dt.files);
+  });
+  ["dragover", "drop"].forEach(function (ev) {
+    window.addEventListener(ev, function (e) { e.preventDefault(); });
+  });
+
+  uploadBtn.addEventListener("click", startUploads);
+  clearBtn.addEventListener("click", function () {
+    if (queue.length === 0) return;
+    if (!confirm("លុប​វីដេអូ​ទាំងអស់​ពី​បញ្ជី?")) return;
+    for (var i = 0; i < queue.length; i++) {
+      if (queue[i].xhr) { try { queue[i].xhr.abort(); } catch (e) {} }
+      if (queue[i].url) URL.revokeObjectURL(queue[i].url);
+    }
+    queue = []; running = 0; doneCount = 0;
+    render();
+    toast("បាន​សម្អាត​បញ្ជី", "ok");
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
