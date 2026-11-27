@@ -1,0 +1,208 @@
+# =============================================================================
+# SAN STORY AI STUDIO — Docker Compose (Development)
+# =============================================================================
+# ដំណើរការ៖  docker compose up -d
+# បិទ៖      docker compose down
+# លាងសម្អាត៖ docker compose down -v   (យក volume ចេញផង)
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16 — Primary database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: san_story_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: san
+      POSTGRES_PASSWORD: san_password
+      POSTGRES_DB: san_story
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres.init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U san -d san_story"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - san_story_net
+
+  # ---------------------------------------------------------------------------
+  # Redis 7 — Cache + BullMQ queue
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: san_story_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - san_story_net
+
+  # ---------------------------------------------------------------------------
+  # API Server (Express + Prisma)
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: san_story_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://san:san_password@postgres:5432/san_story?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-secret-change-me-in-production-32chars
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/api/node_modules
+      - /app/apps/web/node_modules
+    command: pnpm --filter @san-story/api dev
+    networks:
+      - san_story_net
+
+  # ---------------------------------------------------------------------------
+  # Worker Process (BullMQ consumers)
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: san_story_worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://san:san_password@postgres:5432/san_story?schema=public
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "4001:4001"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: pnpm --filter @san-story/worker dev
+    networks:
+      - san_story_net
+
+  # ---------------------------------------------------------------------------
+  # Web Frontend (Vite dev server)
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    container_name: san_story_web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:4000/api/v1
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: pnpm --filter @san-story/web dev --host 0.0.0.0
+    networks:
+      - san_story_net
+
+  # ---------------------------------------------------------------------------
+  # MailHog — Local SMTP catcher (dev only)
+  # ---------------------------------------------------------------------------
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: san_story_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - san_story_net
+
+  # ---------------------------------------------------------------------------
+  # MinIO — S3-compatible local storage (alternative to Supabase)
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: san_story_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: san_story
+      MINIO_ROOT_PASSWORD: san_story_secret
+    ports:
+      - "9000:9000"  # S3 API
+      - "9001:9001"  # Web UI
+    volumes:
+      - minio_data:/data
+    networks:
+      - san_story_net
+
+  # ---------------------------------------------------------------------------
+  # Prisma Studio — Database GUI (optional, run on demand)
+  # ---------------------------------------------------------------------------
+  prisma-studio:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: san_story_prisma_studio
+    profiles: ["studio"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://san:san_password@postgres:5432/san_story?schema=public
+    ports:
+      - "5555:5555"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: pnpm --filter @san-story/api prisma:studio
+    networks:
+      - san_story_net
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  san_story_net:
+    driver: bridge
