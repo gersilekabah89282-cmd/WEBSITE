@@ -1,8 +1,91 @@
+# =============================================================================
+# SAN STORY AI STUDIO — .gitignore
+# =============================================================================
+
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Build outputs
 build/
 dist/
+out/
+.next/
+.nuxt/
+.turbo/
+*.tsbuildinfo
+
+# Coverage
 coverage/
-.DS_Store
-*.log
-.env*
+*.lcov
+.nyc_output/
+
+# Environment
+.env
+.env.local
+.env.*.local
 !.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Prisma
+prisma/migrations/dev.db
+prisma/migrations/dev.db-journal
+
+# Uploads (local dev)
+uploads/
+!uploads/.gitkeep
+
+# FFmpeg temp
+tmp/
+temp/
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv
+*.egg-info/
+
+# Docker
+docker-compose.override.yml
+
+# Secrets & keys
+*.pem
+*.key
+*.crt
+secrets/
+credentials.json
+
+# Misc
+.cache/
+.eslintcache
+.stylelintcache
