@@ -1,0 +1,795 @@
+// =============================================================================
+// SAN STORY AI STUDIO — Prisma Schema (PostgreSQL 16)
+// =============================================================================
+// ឯកសារ schema ពេញលេញសម្រាប់ PostgreSQL database របស់ SAN STORY AI STUDIO
+// All 30 entities across 8 domains: identity, organization, project, media,
+// translation, subtitle, TTS, summarization, and analytics.
+// =============================================================================
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../node_modules/.prisma/client"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  shadowUrl = env("SHADOW_DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMERATIONS
+// =============================================================================
+
+enum UserRole {
+  OWNER
+  ADMIN
+  EDITOR
+  TRANSLATOR
+  VIEWER
+  API_ONLY
+}
+
+enum TeamPlan {
+  FREE
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+enum AuthProvider {
+  GOOGLE
+  GITHUB
+  LOCAL
+}
+
+enum VideoStatus {
+  PENDING
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+  ARCHIVED
+}
+
+enum AssetType {
+  ORIGINAL
+  TRANSCODED
+  THUMBNAIL
+  AUDIO
+  SUBTITLE
+  EXPORT
+}
+
+enum TranslationStatus {
+  QUEUED
+  TRANSLATING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum TranslationProvider {
+  OPENAI
+  GEMINI
+  ANTHROPIC
+  DEEPL
+}
+
+enum TTSStatus {
+  QUEUED
+  SYNTHESIZING
+  COMPLETED
+  FAILED
+}
+
+enum TTSProvider {
+  AZURE
+  GOOGLE
+  ELEVENLABS
+}
+
+enum SummaryStatus {
+  QUEUED
+  SUMMARIZING
+  COMPLETED
+  FAILED
+}
+
+enum SummaryStyle {
+  BRIEF
+  DETAILED
+  CHAPTERED
+  NARRATIVE
+}
+
+enum SubtitleFormat {
+  SRT
+  VTT
+  ASS
+}
+
+enum SubtitleSource {
+  WHISPER
+  AZURE
+  GOOGLE
+  MANUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum SubscriptionProvider {
+  STRIPE
+  PADDLE
+  LEMON_SQUEEZY
+}
+
+enum ProjectPrivacy {
+  PRIVATE
+  TEAM
+  PUBLIC
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  EXPORT
+  IMPERSONATE
+  INVITE
+  REVOKE
+}
+
+// =============================================================================
+// IDENTITY & ACCESS DOMAIN
+// =============================================================================
+
+model User {
+  id              String     @id @default(cuid())
+  email           String     @unique
+  emailLower      String     @unique @map("email_lower") @db.VarChar(255)
+  passwordHash    String?    @map("password_hash")
+  name            String     @db.VarChar(120)
+  avatarUrl       String?    @map("avatar_url") @db.VarChar(512)
+  locale          String     @default("en") @db.VarChar(10)
+  timezone        String?    @db.VarChar(50)
+  twoFactorSecret String?    @map("two_factor_secret") @db.VarChar(64)
+  twoFactorEnabled Boolean   @default(false) @map("two_factor_enabled")
+  emailVerifiedAt DateTime?  @map("email_verified_at")
+  lastLoginAt     DateTime?  @map("last_login_at")
+  lastLoginIp     String?    @map("last_login_ip") @db.VarChar(45)
+  status          String     @default("active") @db.VarChar(20)
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  deletedAt       DateTime?  @map("deleted_at")
+
+  accounts        Account[]
+  sessions        Session[]
+  apiKeys         ApiKey[]
+  teamMemberships TeamMember[]
+  ownedTeams      Team[]      @relation("TeamOwner")
+  videos          Video[]
+  auditLogs       AuditLog[]  @relation("AuditActor")
+  projectMembers  ProjectMember[]
+  usageEvents     UsageEvent[]
+  invitationsSent Invitation[] @relation("InvitationSender")
+  voicePresets    VoicePreset[]
+
+  @@index([createdAt])
+  @@index([lastLoginAt])
+  @@map("users")
+}
+
+model Account {
+  id            String      @id @default(cuid())
+  userId        String      @map("user_id")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider      AuthProvider
+  providerAccountId String  @unique @map("provider_account_id") @db.VarChar(128)
+  accessToken   String?     @map("access_token") @db.Text
+  refreshToken  String?     @map("refresh_token") @db.Text
+  accessTokenExpiresAt DateTime? @map("access_token_expires_at")
+  scope         String?     @db.Text
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token       String   @unique @db.VarChar(128)
+  ip          String?  @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.VarChar(512)
+  expiresAt   DateTime @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([token])
+  @@map("sessions")
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamId      String    @map("team_id")
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  name        String    @db.VarChar(80)
+  keyHash     String    @unique @map("key_hash") @db.VarChar(128)
+  keyPrefix   String    @map("key_prefix") @db.VarChar(12)
+  scopes      String[]  @default([])
+  rateLimit   Int       @default(60) @map("rate_limit")
+  spendCapCents Int?    @map("spend_cap_cents")
+  lastUsedAt  DateTime? @map("last_used_at")
+  expiresAt   DateTime? @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+// =============================================================================
+// ORGANIZATION DOMAIN
+// =============================================================================
+
+model Team {
+  id          String     @id @default(cuid())
+  name        String     @db.VarChar(120)
+  slug        String     @unique @db.VarChar(80)
+  ownerId     String     @map("owner_id")
+  owner       User       @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  plan        TeamPlan   @default(FREE)
+  seatsUsed   Int        @default(1) @map("seats_used")
+  seatsLimit  Int        @default(1) @map("seats_limit")
+  storageUsedBytes BigInt @default(0) @map("storage_used_bytes")
+  storageLimitBytes BigInt @default(5368709120) @map("storage_limit_bytes")
+  branding    Json?
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  members     TeamMember[]
+  projects    Project[]
+  apiKeys     ApiKey[]
+  subscription Subscription?
+  invitations Invitation[]
+  voicePresets VoicePreset[]
+  usageEvents UsageEvent[]
+  auditLogs   AuditLog[]
+
+  @@index([ownerId])
+  @@map("teams")
+}
+
+model TeamMember {
+  id          String    @id @default(cuid())
+  teamId      String    @map("team_id")
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        UserRole  @default(VIEWER)
+  invitedBy   String?   @map("invited_by")
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+model Invitation {
+  id          String    @id @default(cuid())
+  teamId      String    @map("team_id")
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  email       String    @db.VarChar(255)
+  role        UserRole  @default(VIEWER)
+  token       String    @unique @db.VarChar(128)
+  sentBy      String    @map("sent_by")
+  sender      User      @relation("InvitationSender", fields: [sentBy], references: [id])
+  acceptedAt  DateTime? @map("accepted_at")
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([teamId])
+  @@index([email])
+  @@map("invitations")
+}
+
+model Subscription {
+  id            String              @id @default(cuid())
+  teamId        String              @unique @map("team_id")
+  team          Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  provider      SubscriptionProvider
+  externalId    String              @unique @map("external_id") @db.VarChar(128)
+  status        SubscriptionStatus
+  plan          TeamPlan
+  seats         Int                 @default(1)
+  amountCents   Int                 @map("amount_cents")
+  currency      String              @default("USD") @db.VarChar(3)
+  interval      String              @db.VarChar(10) // month | year
+  currentStart  DateTime            @map("current_start")
+  currentEnd    DateTime            @map("current_end")
+  cancelAt      DateTime?           @map("cancel_at")
+  canceledAt    DateTime?           @map("canceled_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("subscriptions")
+}
+
+// =============================================================================
+// PROJECT DOMAIN
+// =============================================================================
+
+model Project {
+  id          String          @id @default(cuid())
+  teamId      String          @map("team_id")
+  team        Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  name        String          @db.VarChar(120)
+  slug        String          @db.VarChar(80)
+  description String?         @db.Text
+  sourceLang  String          @default("en") @map("source_lang") @db.VarChar(10)
+  targetLangs String[]        @default([]) @map("target_langs")
+  privacy     ProjectPrivacy  @default(TEAM)
+  tags        String[]        @default([])
+  metadata    Json?
+  archivedAt  DateTime?       @map("archived_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  members     ProjectMember[]
+  videos      Video[]
+  glossaries  Glossary[]
+  auditLogs   AuditLog[]
+
+  @@unique([teamId, slug])
+  @@index([teamId])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id          String    @id @default(cuid())
+  projectId   String    @map("project_id")
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        UserRole  @default(VIEWER)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+// =============================================================================
+// MEDIA DOMAIN
+// =============================================================================
+
+model Video {
+  id            String       @id @default(cuid())
+  projectId     String       @map("project_id")
+  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploaderId    String       @map("uploader_id")
+  uploader      User         @relation(fields: [uploaderId], references: [id])
+  title         String       @db.VarChar(255)
+  description   String?      @db.Text
+  originalUrl   String       @map("original_url") @db.VarChar(1024)
+  originalName  String       @map("original_name") @db.VarChar(255)
+  mimeType      String       @map("mime_type") @db.VarChar(100)
+  sizeBytes     BigInt       @map("size_bytes")
+  durationSec   Float        @map("duration_sec")
+  width         Int
+  height        Int
+  fps           Float
+  codec         String       @db.VarChar(40)
+  bitrate       Int
+  thumbnailUrl  String?      @map("thumbnail_url") @db.VarChar(1024)
+  status        VideoStatus  @default(PENDING)
+  errorMessage  String?      @map("error_message") @db.Text
+  metadata      Json?
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  deletedAt     DateTime?    @map("deleted_at")
+
+  assets        Asset[]
+  thumbnails    Thumbnail[]
+  translationJobs TranslationJob[]
+  ttsJobs       TTSJob[]
+  summaryJobs   SummaryJob[]
+  subtitleTracks SubtitleTrack[]
+
+  @@index([projectId, status])
+  @@index([uploaderId, createdAt])
+  @@index([createdAt])
+  @@map("videos")
+}
+
+model Asset {
+  id          String     @id @default(cuid())
+  videoId     String     @map("video_id")
+  video       Video      @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  type        AssetType
+  url         String     @db.VarChar(1024)
+  sizeBytes   BigInt     @map("size_bytes")
+  mimeType    String     @map("mime_type") @db.VarChar(100)
+  version     Int        @default(1)
+  metadata    Json?
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  versions    AssetVersion[]
+
+  @@index([videoId, type])
+  @@map("assets")
+}
+
+model AssetVersion {
+  id          String    @id @default(cuid())
+  assetId     String    @map("asset_id")
+  asset       Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  version     Int
+  url         String    @db.VarChar(1024)
+  sizeBytes   BigInt    @map("size_bytes")
+  createdBy   String    @map("created_by") @db.VarChar(60)
+  changeNote  String?   @map("change_note") @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([assetId, version])
+  @@map("asset_versions")
+}
+
+model Thumbnail {
+  id          String    @id @default(cuid())
+  videoId     String    @map("video_id")
+  video       Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  url         String    @db.VarChar(1024)
+  timestampSec Float    @map("timestamp_sec")
+  width       Int
+  height      Int
+  isDefault   Boolean   @default(false) @map("is_default")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([videoId])
+  @@map("thumbnails")
+}
+
+// =============================================================================
+// TRANSLATION DOMAIN
+// =============================================================================
+
+model TranslationJob {
+  id            String              @id @default(cuid())
+  videoId       String              @map("video_id")
+  video         Video               @relation(fields: [videoId], references: [id], onDelete: SetNull)
+  provider      TranslationProvider
+  sourceLang    String              @map("source_lang") @db.VarChar(10)
+  targetLang    String              @map("target_lang") @db.VarChar(10)
+  status        TranslationStatus   @default(QUEUED)
+  progress      Int                 @default(0)
+  glossaryId    String?             @map("glossary_id")
+  glossary      Glossary?           @relation(fields: [glossaryId], references: [id])
+  sourceText    String?             @map("source_text") @db.Text
+  translatedText String?            @map("translated_text") @db.Text
+  tokensUsed    Int                 @default(0) @map("tokens_used")
+  costCents     Int                 @default(0) @map("cost_cents")
+  startedAt     DateTime?           @map("started_at")
+  completedAt   DateTime?           @map("completed_at")
+  errorMessage  String?             @map("error_message") @db.Text
+  metadata      Json?
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  subtitleTracks SubtitleTrack[]
+
+  @@index([videoId, status])
+  @@index([status, createdAt])
+  @@map("translation_jobs")
+}
+
+model Glossary {
+  id          String    @id @default(cuid())
+  projectId   String    @map("project_id")
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String    @db.VarChar(120)
+  sourceLang  String    @map("source_lang") @db.VarChar(10)
+  targetLang  String    @map("target_lang") @db.VarChar(10)
+  description String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  entries     GlossaryEntry[]
+  jobs        TranslationJob[]
+
+  @@unique([projectId, name])
+  @@map("glossaries")
+}
+
+model GlossaryEntry {
+  id          String    @id @default(cuid())
+  glossaryId  String    @map("glossary_id")
+  glossary    Glossary  @relation(fields: [glossaryId], references: [id], onDelete: Cascade)
+  source      String    @db.VarChar(255)
+  target      String    @db.VarChar(255)
+  context     String?   @db.Text
+  partOfSpeech String?  @map("part_of_speech") @db.VarChar(30)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([glossaryId, source])
+  @@index([glossaryId])
+  @@map("glossary_entries")
+}
+
+model TranslationMemory {
+  id          String    @id @default(cuid())
+  teamId      String    @map("team_id")
+  sourceLang  String    @map("source_lang") @db.VarChar(10)
+  targetLang  String    @map("target_lang") @db.VarChar(10)
+  sourceHash  String    @map("source_hash") @db.VarChar(64)
+  sourceText  String    @map("source_text") @db.Text
+  targetText  String    @map("target_text") @db.Text
+  matchScore  Float     @default(1.0) @map("match_score")
+  usageCount  Int       @default(1) @map("usage_count")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@unique([teamId, sourceLang, targetLang, sourceHash])
+  @@index([teamId, sourceLang, targetLang])
+  @@map("translation_memory")
+}
+
+// =============================================================================
+// SUBTITLE DOMAIN
+// =============================================================================
+
+model SubtitleTrack {
+  id                String          @id @default(cuid())
+  videoId           String          @map("video_id")
+  video             Video           @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  translationJobId  String?         @map("translation_job_id")
+  translationJob    TranslationJob? @relation(fields: [translationJobId], references: [id])
+  lang              String          @db.VarChar(10)
+  format            SubtitleFormat  @default(SRT)
+  source            SubtitleSource  @default(WHISPER)
+  content           String          @db.Text
+  isDefault         Boolean         @default(false) @map("is_default")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  cues              SubtitleCue[]
+
+  @@unique([videoId, lang, format])
+  @@index([videoId])
+  @@map("subtitle_tracks")
+}
+
+model SubtitleCue {
+  id          String    @id @default(cuid())
+  trackId     String    @map("track_id")
+  track       SubtitleTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  index       Int
+  startSec    Float     @map("start_sec")
+  endSec      Float     @map("end_sec")
+  text        String    @db.Text
+  speaker     String?   @db.VarChar(80)
+  confidence  Float?    @db.Real
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([trackId, index])
+  @@index([trackId, index])
+  @@map("subtitle_cues")
+}
+
+// =============================================================================
+// TTS DOMAIN
+// =============================================================================
+
+model Voice {
+  id          String      @id @default(cuid())
+  provider    TTSProvider
+  externalId  String      @unique @map("external_id") @db.VarChar(128)
+  name        String      @db.VarChar(120)
+  lang        String      @db.VarChar(10)
+  gender      String      @db.VarChar(10) // male | female | neutral
+  description String?     @db.Text
+  previewUrl  String?     @map("preview_url") @db.VarChar(1024)
+  sampleRate  Int         @default(24000) @map("sample_rate")
+  isActive    Boolean     @default(true) @map("is_active")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  ttsJobs     TTSJob[]
+  presets     VoicePreset[]
+
+  @@index([provider, lang])
+  @@map("voices")
+}
+
+model VoicePreset {
+  id          String    @id @default(cuid())
+  teamId      String    @map("team_id")
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy   String    @map("created_by")
+  user        User      @relation(fields: [createdBy], references: [id])
+  name        String    @db.VarChar(80)
+  voiceIds    String[]  @map("voice_ids")
+  settings    Json
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([teamId])
+  @@map("voice_presets")
+}
+
+model TTSJob {
+  id          String    @id @default(cuid())
+  videoId     String    @map("video_id")
+  video       Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  provider    TTSProvider
+  voiceId     String    @map("voice_id")
+  voice       Voice     @relation(fields: [voiceId], references: [id])
+  text        String    @db.Text
+  audioUrl    String?   @map("audio_url") @db.VarChar(1024)
+  durationSec Float?    @map("duration_sec")
+  sampleRate  Int       @default(24000) @map("sample_rate")
+  status      TTSStatus @default(QUEUED)
+  tokensUsed  Int       @default(0) @map("tokens_used")
+  costCents   Int       @default(0) @map("cost_cents")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  errorMessage String?  @map("error_message") @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([videoId, status])
+  @@index([status, createdAt])
+  @@map("tts_jobs")
+}
+
+// =============================================================================
+// SUMMARIZATION DOMAIN
+// =============================================================================
+
+model SummaryJob {
+  id          String        @id @default(cuid())
+  videoId     String        @map("video_id")
+  video       Video         @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  provider    TranslationProvider
+  targetLang  String        @map("target_lang") @db.VarChar(10)
+  style       SummaryStyle  @default(DETAILED)
+  maxLength   Int           @default(2000) @map("max_length")
+  status      SummaryStatus @default(QUEUED)
+  output      String?       @db.Text
+  tokensUsed  Int           @default(0) @map("tokens_used")
+  costCents   Int           @default(0) @map("cost_cents")
+  startedAt   DateTime?     @map("started_at")
+  completedAt DateTime?     @map("completed_at")
+  errorMessage String?      @map("error_message") @db.Text
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  chapters    SummaryChapter[]
+
+  @@index([videoId, status])
+  @@index([status, createdAt])
+  @@map("summary_jobs")
+}
+
+model SummaryChapter {
+  id          String     @id @default(cuid())
+  summaryJobId String    @map("summary_job_id")
+  summaryJob  SummaryJob @relation(fields: [summaryJobId], references: [id], onDelete: Cascade)
+  index       Int
+  title       String     @db.VarChar(255)
+  content     String     @db.Text
+  startSec    Float?     @map("start_sec")
+  endSec      Float?     @map("end_sec")
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  @@unique([summaryJobId, index])
+  @@index([summaryJobId])
+  @@map("summary_chapters")
+}
+
+// =============================================================================
+// ANALYTICS DOMAIN
+// =============================================================================
+
+model UsageEvent {
+  id           String   @id @default(cuid())
+  teamId       String   @map("team_id")
+  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId       String?  @map("user_id")
+  user         User?    @relation(fields: [userId], references: [id])
+  resourceType String   @map("resource_type") @db.VarChar(40)
+  resourceId   String   @map("resource_id") @db.VarChar(60)
+  action       String   @db.VarChar(40)
+  metadata     Json?
+  tokensUsed   Int      @default(0) @map("tokens_used")
+  costCents    Int      @default(0) @map("cost_cents")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([teamId, createdAt])
+  @@index([userId, createdAt])
+  @@index([resourceType, resourceId])
+  @@map("usage_events")
+}
+
+model AuditLog {
+  id           String       @id @default(cuid())
+  actorId      String?      @map("actor_id")
+  actor        User?        @relation("AuditActor", fields: [actorId], references: [id])
+  teamId       String?      @map("team_id")
+  team         Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  projectId    String?      @map("project_id")
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  action       AuditAction
+  resourceType String       @map("resource_type") @db.VarChar(40)
+  resourceId   String       @map("resource_id") @db.VarChar(60)
+  before       Json?
+  after        Json?
+  ip           String?      @db.VarChar(45)
+  userAgent    String?      @map("user_agent") @db.VarChar(512)
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  @@index([actorId, createdAt])
+  @@index([teamId, createdAt])
+  @@index([resourceType, resourceId])
+  @@map("audit_logs")
+}
+
+// =============================================================================
+// WEBHOOK DOMAIN
+// =============================================================================
+
+model WebhookEndpoint {
+  id          String    @id @default(cuid())
+  teamId      String    @map("team_id")
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  url         String    @db.VarChar(1024)
+  events      String[]
+  secret      String    @db.VarChar(128)
+  isActive    Boolean   @default(true) @map("is_active")
+  lastTriggeredAt DateTime? @map("last_triggered_at")
+  lastResponseStatus Int? @map("last_response_status")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  deliveries  WebhookDelivery[]
+
+  @@index([teamId])
+  @@map("webhook_endpoints")
+}
+
+model WebhookDelivery {
+  id          String    @id @default(cuid())
+  endpointId  String    @map("endpoint_id")
+  endpoint    WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event       String    @db.VarChar(60)
+  payload     Json
+  responseStatus Int?   @map("response_status")
+  responseBody String? @map("response_body") @db.Text
+  attempt     Int       @default(1)
+  deliveredAt DateTime? @map("delivered_at")
+  nextRetryAt DateTime? @map("next_retry_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([endpointId, createdAt])
+  @@index([nextRetryAt])
+  @@map("webhook_deliveries")
+}
