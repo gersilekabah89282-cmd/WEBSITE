@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="km" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAN STORY AI STUDIO — Dashboard Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0d1a;
+    --bg-2: #0f1424;
+    --panel: #141a30;
+    --panel-2: #1a2140;
+    --border: #2a3360;
+    --text: #eef1ff;
+    --muted: #8a93c4;
+    --accent: #7c5cff;
+    --accent-2: #4f8cff;
+    --accent-3: #22d3ee;
+    --grad: linear-gradient(135deg, #7c5cff 0%, #4f8cff 55%, #22d3ee 110%);
+    --ok: #34d399;
+    --warn: #fbbf24;
+    --err: #f87171;
+    --radius: 14px;
+    --shadow: 0 10px 30px rgba(0,0,0,.4);
+    --font: 'Inter','Noto Sans Khmer',system-ui,sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(124,92,255,.18), transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(79,140,255,.15), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: clamp(20px, 4vw, 40px); }
+  .hero {
+    text-align: center;
+    padding: clamp(40px, 8vw, 80px) 20px;
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 28px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 5px 14px;
+    background: var(--grad);
+    color: #fff;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .hero h1 {
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -.5px;
+    margin-bottom: 12px;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    color: var(--muted);
+    font-size: clamp(.95rem, 2.5vw, 1.1rem);
+    max-width: 640px;
+    margin: 0 auto 28px;
+  }
+  .cta-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-size: .95rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform .12s, opacity .15s;
+    border: 0;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--grad); color: #fff; box-shadow: 0 6px 16px rgba(124,92,255,.4); }
+  .btn-primary:hover { opacity: .92; }
+  .btn-ghost { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+  .card {
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    transition: transform .15s, border-color .15s;
+  }
+  .card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .card .icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: var(--grad);
+    display: grid; place-items: center;
+    margin-bottom: 14px;
+    font-size: 1.4rem;
+  }
+  .card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+  .card p { color: var(--muted); font-size: .9rem; line-height: 1.5; }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+  }
+  .stat .num {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 800;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat .label { color: var(--muted); font-size: .82rem; margin-top: 4px; }
+  .docs {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 28px;
+  }
+  .docs h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 16px; }
+  .docs ul { list-style: none; }
+  .docs li {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .docs li:last-child { border-bottom: 0; }
+  .docs a {
+    color: var(--accent-2);
+    text-decoration: none;
+    font-weight: 500;
+    flex: 1;
+  }
+  .docs a:hover { text-decoration: underline; }
+  .docs .arrow { color: var(--muted); }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: .85rem;
+    padding: 20px 0;
+  }
+  footer a { color: var(--accent-2); text-decoration: none; }
+  .note {
+    background: rgba(124,92,255,.08);
+    border: 1px solid rgba(124,92,255,.3);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    font-size: .9rem;
+    color: var(--text);
+  }
+  .note strong { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section class="hero">
+    <span class="badge">Ultimate Enterprise Edition</span>
+    <h1>SAN STORY AI STUDIO</h1>
+    <p>មជ្ឈមណ្ឌលបកប្រែវីដេអូ AI និងសង្ខេបរឿង | AI Video Translation & Story Summarization Platform</p>
+    <div class="cta-group">
+      <a href="../README.md" class="btn btn-primary">មើលឯកសារ</a>
+      <a href="../docs/ARCHITECTURE.md" class="btn btn-ghost">ស្ថាបត្យកម្ម</a>
+    </div>
+  </section>
+
+  <div class="note">
+    <strong>សម្គាល់៖</strong> ទំព័រនេះជាកន្លែងផ្ទុក (landing page) សម្រាប់ dashboard prototype។ 
+    ដើម្បីប្រើ dashboard ពេញលេញ (ជាមួយ mock data និង client-side simulation) សូមបង្ហោះឯកសារ 
+    <code>san-story-ai-studio.html</code> ពេញលេញទៅកាន់ថត <code>public/</code> នៅក្នុង repository។
+  </div>
+
+  <section class="stats-row">
+    <div class="stat"><div class="num">15</div><div class="label">ម៉ូឌុលចម្បង</div></div>
+    <div class="stat"><div class="num">30</div><div class="label">Entities</div></div>
+    <div class="stat"><div class="num">9</div><div class="label">ដំណាក់កាល</div></div>
+    <div class="stat"><div class="num">16</div><div class="label">សប្ដាហ៍</div></div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <div class="icon">🎥</div>
+      <h3>Video Upload & Processing</h3>
+      <p>Drag-drop uploader, chunked upload, FFmpeg probe + transcode, thumbnail generation</p>
+    </div>
+    <div class="card">
+      <div class="icon">🌐</div>
+      <h3>AI Translation Engine</h3>
+      <p>Multi-provider (OpenAI / Gemini / Anthropic) with glossary & translation memory</p>
+    </div>
+    <div class="card">
+      <div class="icon">📖</div>
+      <h3>Story Summarizer</h3>
+      <p>Long-form narrative compression, chapter detection, multi-style summaries</p>
+    </div>
+    <div class="card">
+      <div class="icon">🔊</div>
+      <h3>Multi-language TTS</h3>
+      <p>80+ voices via Azure / Google / ElevenLabs with voice presets</p>
+    </div>
+    <div class="card">
+      <div class="icon">💬</div>
+      <h3>Subtitle Generation</h3>
+      <p>Whisper-based ASR with SRT/VTT/ASS export and inline editing</p>
+    </div>
+    <div class="card">
+      <div class="icon">👥</div>
+      <h3>Team Collaboration</h3>
+      <p>Real-time presence, roles, mentions, version history, comments</p>
+    </div>
+  </section>
+
+  <section class="docs">
+    <h2>ឯកសារបន្ថែម / Documentation</h2>
+    <ul>
+      <li><a href="../README.md">README.md</a> <span class="arrow">→</span> ភាពសង្ខេបគម្រោង</li>
+      <li><a href="../docs/ARCHITECTURE.md">ARCHITECTURE.md</a> <span class="arrow">→</span> ស្ថាបត្យកម្មប្រព័ន្ធ</li>
+      <li><a href="../docs/ERD.md">ERD.md</a> <span class="arrow">→</span> ដ្ឋានសន្ទីយ៍ទិន្នន័យ</li>
+      <li><a href="../prisma/schema.prisma">schema.prisma</a> <span class="arrow">→</span> Prisma schema ពេញលេញ</li>
+      <li><a href="../docs/FOLDER_STRUCTURE.md">FOLDER_STRUCTURE.md</a> <span class="arrow">→</span> រចនាសម្ព័ន្ធថត</li>
+      <li><a href="../docs/PHASES.md">PHASES.md</a> <span class="arrow">→</span> ផែនការអភិវឌ្ឍន៍ 9 ដំណាក់កាល</li>
+      <li><a href="../docker-compose.yml">docker-compose.yml</a> <span class="arrow">→</span> Docker orchestration</li>
+      <li><a href="../.env.example">.env.example</a> <span class="arrow">→</span> អថេរបរិស្ថាន</li>
+      <li><a href="video-upload.html">video-upload.html</a> <span class="arrow">→</span> កម្មវិធីបង្ហោះវីដេអូ</li>
+      <li><a href="../scripts/upload_server.py">upload_server.py</a> <span class="arrow">→</span> Python upload server</li>
+    </ul>
+  </section>
+
+  <footer>
+    SAN STORY AI STUDIO · <a href="https://github.com/gersilekabah89282-cmd/WEBSITE">github.com/gersilekabah89282-cmd/WEBSITE</a><br>
+    Built with passion for the Khmer-language AI community · សាងសង់ដោយសេចក្ដីស្រឡាញ់សម្រាប់សហគមន៍ AI ភាសាខ្មែរ
+  </footer>
+
+</div>
+</body>
+</html>
